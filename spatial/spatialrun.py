@@ -10,6 +10,7 @@ from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.utils import data
 from tqdm import tqdm
+from tensorboardX import SummaryWriter
 
 # command line args
 parser = argparse.ArgumentParser(description='Neural Statistician Synthetic Experiment')
@@ -19,6 +20,8 @@ parser.add_argument('--data-dir', required=True, type=str, default=None,
                     help='location of formatted Omniglot data')
 parser.add_argument('--output-dir', required=True, type=str, default=None,
                     help='output directory for checkpoints and figures')
+parser.add_argument('--log-name', required=False, type=str, default=None,
+                    help='Log-name for shits')
 
 # optional
 parser.add_argument('--batch-size', type=int, default=64,
@@ -47,9 +50,9 @@ parser.add_argument('--learning-rate', type=float, default=1e-3,
                     help='learning rate for Adam optimizer (default: 1e-3).')
 parser.add_argument('--epochs', type=int, default=100,
                     help='number of epochs for training (default: 100)')
-parser.add_argument('--viz-interval', type=int, default=-1,
+parser.add_argument('--viz-interval', type=int, default=1,
                     help='number of epochs between visualizing context space '
-                         '(default: -1 (only visualize last epoch))')
+                         '(default: 1)')
 parser.add_argument('--save_interval', type=int, default=-1,
                     help='number of epochs between saving model '
                          '(default: -1 (save on last epoch))')
@@ -58,11 +61,17 @@ parser.add_argument('--clip-gradients', type=bool, default=True,
                          '(default: True)')
 args = parser.parse_args()
 assert args.output_dir is not None
-os.makedirs(os.path.join(args.output_dir, 'checkpoints'), exist_ok=True)
-os.makedirs(os.path.join(args.output_dir, 'figures'), exist_ok=True)
-
 # experiment start time
 time_stamp = time.strftime("%d-%m-%Y-%H:%M:%S")
+if args.log_name is None:
+    args.log_name = "run_%s"%time_stamp
+else:
+    args.log_name += "_%s"%time_stamp
+os.makedirs(os.path.join(args.output_dir, args.log_name, 'checkpoints'), exist_ok=True)
+os.makedirs(os.path.join(args.output_dir, args.log_name, 'figures'), exist_ok=True)
+log_path = os.path.join('runs', args.log_name)
+os.makedirs(log_path, exist_ok=True)
+writer = SummaryWriter(log_dir=log_path)
 
 
 def run(model, optimizer, loaders, datasets):
@@ -83,9 +92,11 @@ def run(model, optimizer, loaders, datasets):
         # train step
         model.train()
         running_vlb = 0
-        for batch in train_loader:
+        for bidx, batch in enumerate(train_loader):
             inputs = Variable(batch[0].cuda())
             vlb = model.step(inputs, alpha, optimizer, clip_gradients=args.clip_gradients)
+            step = bidx + epoch * len(train_loader)
+            writer.add_scalar("train/vlb", vlb, step)
             running_vlb += vlb
 
         running_vlb /= (len(train_dataset) // args.batch_size)
@@ -97,12 +108,14 @@ def run(model, optimizer, loaders, datasets):
 
         # show samples conditioned on test batch at intervals
         model.eval()
-        if (epoch + 1) % viz_interval == 0:
-            inputs = Variable(test_batch[0].cuda(), volatile=True)
-            samples = model.sample_conditioned(inputs)
-            filename = time_stamp + '-{}.png'.format(epoch + 1)
-            save_path = os.path.join(args.output_dir, 'figures/' + filename)
-            grid(inputs, samples, save_path=save_path, ncols=10)
+        with torch.no_grad():
+            if (epoch + 1) % viz_interval == 0:
+                inputs = Variable(test_batch[0].cuda())
+                samples = model.sample_conditioned(inputs)
+                filename = time_stamp + '-{}.png'.format(epoch + 1)
+                save_path = os.path.join(args.output_dir, 'figures/' + filename)
+                ret = grid(inputs, samples, save_path=save_path, ncols=10)
+                writer.add_image("val/image", ret, epoch)
 
         # checkpoint model at intervals
         if (epoch + 1) % save_interval == 0:

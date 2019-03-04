@@ -1,4 +1,5 @@
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 def grid(inputs, samples, summaries=None, save_path=None, ncols=10):
@@ -27,5 +28,12 @@ def grid(inputs, samples, summaries=None, save_path=None, ncols=10):
     fig.subplots_adjust(wspace=0.05, hspace=0.05)
     plt.tight_layout()
 
+    fig.canvas.draw()
+    ret = np.array(fig.canvas.renderer._renderer)
+    ret = np.transpose(ret, (2, 0, 1))
+
     if save_path is not None:
         fig.savefig(save_path)
+
+    return ret
+

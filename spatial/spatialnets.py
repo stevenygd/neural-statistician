@@ -360,3 +360,5 @@ class ObservationDecoder(nn.Module):
         mean = self.fc_params(e)
 
         return mean, self.logvar.expand_as(mean)
+
+

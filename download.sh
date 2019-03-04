@@ -1,5 +1,6 @@
 #! /bin/bash
 
+mkdir -p data
 cd data
 
 wget https://github.com/yburda/iwae/blob/master/datasets/OMNIGLOT/chardata.mat
