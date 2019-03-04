@@ -125,18 +125,19 @@ def run(model, optimizer, loaders, datasets):
 
     # we're already in eval mode, but let's be explicit
     model.eval()
-    # summarize test batch at end of training
-    n = 10  # number of datasets to summarize
-    inputs = Variable(test_batch[0].cuda(), volatile=True)
-    print("Summarizing...")
-    summaries = model.summarize_batch(inputs[:n], output_size=6)
-    print("Summary complete!")
+    with torch.no_grad():
+        # summarize test batch at end of training
+        n = 10  # number of datasets to summarize
+        inputs = Variable(test_batch[0].cuda())
+        print("Summarizing...")
+        summaries = model.summarize_batch(inputs[:n], output_size=6)
+        print("Summary complete!")
 
-    # plot summarized datasets
-    samples = model.sample_conditioned(inputs)
-    filename = time_stamp + '-summary.png'
-    save_path = os.path.join(args.output_dir, 'figures/' + filename)
-    grid(inputs, samples, summaries=summaries, save_path=save_path, ncols=n)
+        # plot summarized datasets
+        samples = model.sample_conditioned(inputs)
+        filename = time_stamp + '-summary.png'
+        save_path = os.path.join(args.output_dir, 'figures/' + filename)
+        grid(inputs, samples, summaries=summaries, save_path=save_path, ncols=n)
 
 
 def main():
