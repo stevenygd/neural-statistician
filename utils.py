@@ -26,13 +26,17 @@ def kl_diagnormal_stdnormal(mean, logvar):
     return 0.5 * torch.sum(a + b + c + d)
 
 
-def kl_diagnormal_diagnormal(q_mean, q_logvar, p_mean, p_logvar):
+def kl_diagnormal_diagnormal(q_mean, q_logvar, p_mean, p_logvar, clip=False, eps=1e-10):
     # Ensure correct shapes since no numpy broadcasting yet
     p_mean = p_mean.expand_as(q_mean)
     p_logvar = p_logvar.expand_as(q_logvar)
 
+    if clip:
+        p_logvar = torch.clamp(p_logvar, min=-4, max=3)
+
     a = p_logvar
     b = - 1
     c = - q_logvar
-    d = ((q_mean - p_mean)**2 + torch.exp(q_logvar)) / torch.exp(p_logvar)
+    # d = ((q_mean - p_mean)**2 + torch.exp(q_logvar)) / torch.exp(p_logvar)
+    d = ((q_mean - p_mean)**2 + torch.exp(q_logvar)) / (eps + torch.exp(p_logvar))
     return 0.5 * torch.sum(a + b + c + d)

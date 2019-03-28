@@ -6,12 +6,11 @@ from torch.utils import data
 
 
 class SpatialMNISTDataset(data.Dataset):
-    def __init__(self, data_dir, nsamples=50, split='train'):
+    def __init__(self, data_dir, split='train'):
         splits = {
             'train': slice(0, 60000),
             'test': slice(60000, 70000)
         }
-        self.nsamples = nsamples
 
         spatial_path = os.path.join(data_dir, 'spatial.pkl')
         with open(spatial_path, 'rb') as file:
@@ -32,9 +31,7 @@ class SpatialMNISTDataset(data.Dataset):
         self._n = len(self._spatial)
 
     def __getitem__(self, item):
-        n = self._spatial[item].shape[0]
-        idxs = np.random.permutation(self.nsamples) % n
-        return self._spatial[item][idxs,:], self._labels[item]
+        return self._spatial[item], self._labels[item]
 
     def __len__(self):
         return self._n

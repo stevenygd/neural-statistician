@@ -1,7 +1,8 @@
 import argparse
 import os
 import time
-
+import torch
+torch.backends.cudnn.enabled = False
 from spatialdata import SpatialMNISTDataset
 from spatialmodel import Statistician
 from spatialplot import grid
@@ -113,14 +114,14 @@ def run(model, optimizer, loaders, datasets):
                 inputs = Variable(test_batch[0].cuda())
                 samples = model.sample_conditioned(inputs)
                 filename = time_stamp + '-{}.png'.format(epoch + 1)
-                save_path = os.path.join(args.output_dir, 'figures/' + filename)
+                save_path = os.path.join(args.output_dir, args.log_name, 'figures/' + filename)
                 ret = grid(inputs, samples, save_path=save_path, ncols=10)
                 writer.add_image("val/image", ret, epoch)
 
         # checkpoint model at intervals
         if (epoch + 1) % save_interval == 0:
             filename = time_stamp + '-{}.m'.format(epoch + 1)
-            save_path = os.path.join(args.output_dir, 'checkpoints/' + filename)
+            save_path = os.path.join(args.output_dir, args.log_name, 'checkpoints/' + filename)
             model.save(optimizer, save_path)
 
     # we're already in eval mode, but let's be explicit
@@ -141,8 +142,13 @@ def run(model, optimizer, loaders, datasets):
 
 
 def main():
-    train_dataset = SpatialMNISTDataset(data_dir=args.data_dir, split='train')
-    test_dataset = SpatialMNISTDataset(data_dir=args.data_dir, split='test')
+    # hardcoded sample_size and n_features when making Spatial MNIST dataset
+    # sample_size = 50
+    sample_size = 2048
+    n_features = 2
+
+    train_dataset = SpatialMNISTDataset(data_dir=args.data_dir, nsamples=sample_size, split='train')
+    test_dataset = SpatialMNISTDataset(data_dir=args.data_dir, nsamples=sample_size, split='test')
     datasets = (train_dataset, test_dataset)
 
     train_loader = data.DataLoader(dataset=train_dataset, batch_size=args.batch_size,
@@ -152,9 +158,6 @@ def main():
                                   shuffle=True, num_workers=0, drop_last=True)
     loaders = (train_loader, test_loader)
 
-    # hardcoded sample_size and n_features when making Spatial MNIST dataset
-    sample_size = 50
-    n_features = 2
     model_kwargs = {
         'batch_size': args.batch_size,
         'sample_size': sample_size,
