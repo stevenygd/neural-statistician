@@ -98,6 +98,14 @@ def evaluate(model, test_loader, writer, epoch, verbose=False):
             samples = samples[:B]
             reference = batch['test_points'].cuda()
 
+            # Denormalize
+            m, s = data['mean'].float(), data['std'].float()
+            m = m.cuda() if args.gpu is None else m.cuda(args.gpu)
+            s = s.cuda() if args.gpu is None else s.cuda(args.gpu)
+            recons = recons * s + m
+            samples = samples * s + m
+            reference = reference * s + m
+
             sample_pcls.append(samples)
             recon_pcls.append(recons)
             ref_pcls.append(reference)

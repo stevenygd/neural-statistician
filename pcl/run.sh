@@ -8,7 +8,7 @@ python spatialrun.py \
     --val-interval 10 \
     --viz-interval 1 \
     --output-dir runs \
-    --log-name normal-eps
+    --log-name normal-denorm
     # --log-name normal-clip
     # --log-name normal
 
