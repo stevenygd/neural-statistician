@@ -99,7 +99,7 @@ def evaluate(model, test_loader, writer, epoch, verbose=False):
             reference = batch['test_points'].cuda()
 
             # Denormalize
-            m, s = data['mean'].float(), data['std'].float()
+            m, s = batch['mean'].float(), batch['std'].float()
             m = m.cuda() if args.gpu is None else m.cuda(args.gpu)
             s = s.cuda() if args.gpu is None else s.cuda(args.gpu)
             recons = recons * s + m
